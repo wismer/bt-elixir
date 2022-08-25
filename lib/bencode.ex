@@ -100,6 +100,7 @@ defmodule Bittorrent.Bencode do
 
         Enum.to_list(cmon)
       end)
+
     data
   end
 end

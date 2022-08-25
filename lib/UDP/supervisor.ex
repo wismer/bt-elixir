@@ -1,4 +1,5 @@
 defmodule Bittorrent.UDP.Supervisor do
+  @client_id :crypto.hash(:sha, "arandomid")
   use DynamicSupervisor
 
   def start_link(_) do
@@ -11,6 +12,7 @@ defmodule Bittorrent.UDP.Supervisor do
   end
 
   def connect_trackers([%URI{scheme: "udp", host: host, port: port} | trackers], sockets) do
+    # TODO: move info_hash as a param, so it doesn't block on each iteration
     info_hash = GenServer.call(Bittorrent.Torrent, :info_hash)
 
     {:ok, pid} =
@@ -21,7 +23,15 @@ defmodule Bittorrent.UDP.Supervisor do
           :start => {
             Bittorrent.UDP.Socket,
             :start_link,
-            [{host, port, [transaction_id: :rand.bytes(4), info_hash: info_hash]}]
+            [
+              {host, port,
+               [
+                 transaction_id: :rand.bytes(4),
+                 info_hash: info_hash,
+                 peer_id: @client_id,
+                 port: port
+               ]}
+            ]
           }
         }
       )
