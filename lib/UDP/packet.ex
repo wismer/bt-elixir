@@ -71,11 +71,11 @@ defmodule Bittorrent.UDP.Packet do
         # downloaded
         {0, 64},
         # left
-        {0, 64},
+        {33554432, 64},
         # uploaded
         {0, 64},
         # will need to make this dynamic?
-        {0, 32},
+        {2, 32},
         # event 
         {0, 32},
         # key

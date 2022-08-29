@@ -2,26 +2,37 @@ defmodule Bittorrent.UDP.Socket do
   use GenServer
   alias Bittorrent.UDP.Packet
 
-  def start_link({host, port, extra}) do
-    GenServer.start_link(__MODULE__, {host, port, extra}, name: String.to_atom(host))
+  def start_link(%{tracker_info: { host, _port, protocol }} = opts) do
+    GenServer.start_link(__MODULE__, opts, name: String.to_atom("#{host}_#{protocol}"))
   end
 
-  def init({host, port, extra}) do
-    IO.inspect("SOCKET INIT FOR #{host}")
-    {:ok, socket} = :gen_udp.open(0, [:binary])
-
+  def init(%{ tracker_info: {host, port, protocol}} = opts) do
+    IO.inspect("SOCKET INIT FOR #{host}-#{protocol}")
+    {:ok, socket} = :gen_udp.open(0, [:binary, protocol])
+    addr_info(host, protocol)
     result = :gen_udp.connect(socket, '#{host}', port)
-    {:ok, {socket, extra}}
+    {:ok, {socket, Map.get(opts, :meta_info)}}
   end
 
-  def handle_cast(:connect, {socket, extra}) do
+  def addr_info(host, protocol) do
+    IO.inspect({:result, :inet.getaddr('#{host}', protocol), host, protocol})
+  end
+
+  def handle_cast(:connect, {socket, extra} = rest) do
+    IO.inspect(rest)  
     packet = Packet.build(:connect, transaction_id: extra[:transaction_id])
 
     case :gen_udp.send(socket, packet) do
       :ok ->
         {:noreply, {socket, extra}}
-      {:error, err} -> {:stop, :error, :gen_udp.close(socket)}
+      {:error, err} -> 
+        # IO.inspect(err)
+        {:stop, :error, :gen_udp.close(socket)}
     end
+  end
+
+  def handle_info(oops, rest) do
+    IO.inspect(rest)
   end
 
   def handle_info({:udp, _socket, _addr, _port, data}, {socket, extra}) do
@@ -35,7 +46,9 @@ defmodule Bittorrent.UDP.Socket do
       |> Packet.build(extra)
 
     case response_packet do
-      {:ready, ips} -> {:stop, :ready, ips}
+      {:ready, ips} -> 
+        IO.inspect(ips)
+        {:stop, :ready, ips}
       _ -> 
         :gen_udp.send(socket, response_packet)
         {:noreply, {socket, [transaction_id: :rand.bytes(4)]}}

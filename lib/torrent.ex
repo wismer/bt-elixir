@@ -18,10 +18,14 @@ defmodule Bittorrent.Torrent do
     {:reply, sha_hash, state}
   end
 
-  def handle_call(:trackers, _, state),
-    do:
+  def handle_call(:trackers, _, state) do
+    if state["announce-list"] do
       {:reply,
-       for tracker <- state["announce-list"], tracker.scheme == "udp" do
-         tracker
-       end, state}
+        for tracker <- state["announce-list"], tracker.scheme == "udp" do
+          tracker
+        end, state}
+    else
+      {:reply, [state["announce"]], state}
+    end
+  end
 end

@@ -12,7 +12,7 @@ defmodule Bittorrent.Bencode do
     {:ok, parse_torrent()}
   end
 
-  def parse_torrent(torrent_file \\ "../../../Downloads/big-buck-bunny.torrent") do
+  def parse_torrent(torrent_file \\ "../../../Downloads/the-good-place.torrent") do
     File.read!(torrent_file)
     |> IO.iodata_to_binary()
     |> decode()
@@ -88,7 +88,8 @@ defmodule Bittorrent.Bencode do
   end
 
   def into_uri({data, r}) do
-    data =
+    IO.inspect(data)
+    if data["announce-list"] do
       update_in(data["announce-list"], fn urls ->
         cmon =
           Stream.map(urls, fn [url | _] ->
@@ -100,7 +101,9 @@ defmodule Bittorrent.Bencode do
 
         Enum.to_list(cmon)
       end)
-
-    data
+    else
+      {:ok, uri} = URI.new(data["announce"])
+      Map.put(data, "announce", uri)
+    end
   end
 end
