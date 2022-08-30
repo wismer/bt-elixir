@@ -11,19 +11,16 @@ defmodule Bittorrent.UDP.Supervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def connect_trackers([%URI{scheme: "udp", host: host, port: port} | trackers], sockets) do
-    # TODO: move info_hash as a param, so it doesn't block on each iteration
-    info_hash = GenServer.call(Bittorrent.Torrent, :info_hash)
-    {:ok, inet6_pid} = DynamicSupervisor.start_child(
-      __MODULE__,
+  def into_child(%URI{scheme: "udp", host: host, port: port}, info_hash) do
+    for mask <- [:inet, :inet6] do      
       %{
-        :id => "#{host}-inet6",
+        :id => "#{host}_#{mask}",
         :start => {
           Bittorrent.UDP.Socket,
           :start_link,
           [
             %{
-              tracker_info: {host, port, :inet6},
+              tracker_info: {host, port, mask},
               meta_info: [
                transaction_id: :rand.bytes(4),
                info_hash: info_hash,
@@ -34,35 +31,44 @@ defmodule Bittorrent.UDP.Supervisor do
           ]
         }
       }
-    )
-    {:ok, inet_pid} =
-      DynamicSupervisor.start_child(
-        __MODULE__,
-        %{
-          :id => host,
-          :start => {
-            Bittorrent.UDP.Socket,
-            :start_link,
-            [
-              %{
-                tracker_info: {host, port, :inet},
-                meta_info: [
-                 transaction_id: :rand.bytes(4),
-                 info_hash: info_hash,
-                 peer_id: @client_id,
-                 port: port # probably fix this
-               ]
-              }
-            ]
-          }
-        }
-      )
-
-    GenServer.cast(inet6_pid, :connect)
-    GenServer.cast(inet_pid, :connect)
-    connect_trackers(trackers, [inet6_pid | [inet_pid | sockets]])
+    end
   end
 
-  def connect_trackers([tracker | trackers], sockets), do: connect_trackers(trackers, sockets)
-  def connect_trackers([], sockets), do: sockets
+  def into_children([%URI{scheme: "udp", host: host, port: port} | trackers], children, info_hash) do
+    tracker_set = for mask <- [:inet, :inet6] do      
+      %{
+        :id => "#{host}_#{mask}",
+        :start => {
+          Bittorrent.UDP.Socket,
+          :start_link,
+          [
+            %{
+              tracker_info: {host, port, mask},
+              meta_info: [
+               transaction_id: :rand.bytes(4),
+               info_hash: info_hash,
+               peer_id: @client_id,
+               port: port # probably fix this
+             ]
+            }
+          ]
+        }
+      }
+    end
+
+    into_children(trackers, tracker_set ++ children, info_hash)
+  end
+  def into_children([], children, info_hash), do: children
+
+  def connect(children, sockets \\ []), do: connect_trackers(children, sockets)
+
+  defp connect_trackers([child | children], sockets) do
+    case DynamicSupervisor.start_child(__MODULE__, child) do
+      {:ok, pid} -> 
+        GenServer.cast(pid, :connect)
+        connect_trackers(children, [pid | sockets])
+      {:error, _} -> connect_trackers(children, sockets)
+    end
+  end
+  defp connect_trackers([], sockets), do: sockets
 end

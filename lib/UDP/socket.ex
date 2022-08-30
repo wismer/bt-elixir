@@ -7,19 +7,20 @@ defmodule Bittorrent.UDP.Socket do
   end
 
   def init(%{ tracker_info: {host, port, protocol}} = opts) do
-    IO.inspect("SOCKET INIT FOR #{host}-#{protocol}")
-    {:ok, socket} = :gen_udp.open(0, [:binary, protocol])
-    addr_info(host, protocol)
-    result = :gen_udp.connect(socket, '#{host}', port)
-    {:ok, {socket, Map.get(opts, :meta_info)}}
-  end
+    {:ok, socket} = :gen_udp.open(0, [:binary, protocol, active: true])
 
-  def addr_info(host, protocol) do
-    IO.inspect({:result, :inet.getaddr('#{host}', protocol), host, protocol})
+    addr = case :inet.getaddr('#{host}', protocol) do
+      {:ok, ip} -> ip
+      {:error, _} -> '#{host}'
+    end
+
+    case :gen_udp.connect(socket, addr, port) do
+      :ok -> {:ok, {socket, Map.get(opts, :meta_info)}}
+      {:error, reason} -> {:stop, reason}
+    end
   end
 
   def handle_cast(:connect, {socket, extra} = rest) do
-    IO.inspect(rest)  
     packet = Packet.build(:connect, transaction_id: extra[:transaction_id])
 
     case :gen_udp.send(socket, packet) do
@@ -31,15 +32,10 @@ defmodule Bittorrent.UDP.Socket do
     end
   end
 
-  def handle_info(oops, rest) do
-    IO.inspect(rest)
-  end
-
   def handle_info({:udp, _socket, _addr, _port, data}, {socket, extra}) do
     # validate the packet first
     next_t_id = :rand.bytes(4)
 
-    
     response_packet = data
       |> Packet.parse()
       |> Packet.validate(transaction_id: extra[:transaction_id])
@@ -47,8 +43,8 @@ defmodule Bittorrent.UDP.Socket do
 
     case response_packet do
       {:ready, ips} -> 
-        IO.inspect(ips)
-        {:stop, :ready, ips}
+        GenServer.call(Bittorrent.Torrent, {:peers, ips})
+        {:stop, :peers, ips}
       _ -> 
         :gen_udp.send(socket, response_packet)
         {:noreply, {socket, [transaction_id: :rand.bytes(4)]}}

@@ -8,10 +8,12 @@ defmodule Bittorrent.UDP.ConnectionManager do
 
   def init(_) do
     # tracker / info hash call can get merged, maybe
-    trackers =
-      GenServer.call(Bittorrent.Torrent, :trackers)
-      |> SocketSupervisor.connect_trackers([])
-
-    {:ok, trackers}
+    {trackers, info_hash} = GenServer.call(Bittorrent.Torrent, :trackers)
+    IO.inspect(info_hash)
+    sockets = trackers
+      |> Enum.map(fn tracker -> SocketSupervisor.into_child(tracker, info_hash) end)
+      |> List.flatten()
+      |> SocketSupervisor.connect()
+    {:ok, sockets}
   end
 end

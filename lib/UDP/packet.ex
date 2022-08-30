@@ -34,6 +34,7 @@ defmodule Bittorrent.UDP.Packet do
 
 
   # UNPACKING
+
   defp unpack([], <<>>, parts), do: parts
 
   defp unpack([{:ips, _ip_s} | [{:ports, _p_s} | rest]], buffer, parts) do
@@ -71,11 +72,11 @@ defmodule Bittorrent.UDP.Packet do
         # downloaded
         {0, 64},
         # left
-        {33554432, 64},
+        {0, 64},
         # uploaded
         {0, 64},
         # will need to make this dynamic?
-        {2, 32},
+        {1, 32},
         # event 
         {0, 32},
         # key
@@ -95,15 +96,11 @@ defmodule Bittorrent.UDP.Packet do
   def validate(%{transaction_id: current_t_id, size: size} = parts,
         transaction_id: t_id
       ) do
-    # if current_t_id == t_id do
       key = case parts[:step] do
         :connect -> :announce
-        :announce -> :uh_oh
+        :announce -> :uh_oh # make up something professional, for crying out loud.
       end
       %{parts | step: key}
-    # else
-      # {:error, :invalid}
-    # end
   end
 
   def validate(parts, fields), do: {:error, :invalid}
