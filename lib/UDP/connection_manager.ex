@@ -3,13 +3,13 @@ defmodule Bittorrent.UDP.ConnectionManager do
   use GenServer
 
   def start_link(_opts) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   def init(_) do
     # tracker / info hash call can get merged, maybe
     {trackers, info_hash} = GenServer.call(Bittorrent.Torrent, :trackers)
-    IO.inspect(info_hash)
+
     sockets = trackers
       |> Enum.map(fn tracker -> SocketSupervisor.into_child(tracker, info_hash) end)
       |> List.flatten()

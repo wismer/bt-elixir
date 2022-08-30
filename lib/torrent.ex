@@ -12,20 +12,22 @@ defmodule Bittorrent.Torrent do
     {:ok, torrent_data}
   end
 
-  def handle_call(:info_hash, _, state) do
-    tracker_list = Bencode.encode(%{"pieces" => state["info"]})
-    sha_hash = :crypto.hash(:sha, tracker_list)
-    {:reply, sha_hash, state}
-  end
-
   def handle_call(:trackers, _, state) do
+    # TO DO: The encoding isn't quite right - the sha1 hash isn't matching! TIME WASTED!
+    tracker_list = Bencode.encode(%{"pieces" => state["info"]})
     if state["announce-list"] do
-      {:reply,
-        for tracker <- state["announce-list"], tracker.scheme == "udp" do
-          tracker
-        end, state}
+      trackers = for tracker <- state["announce-list"], tracker.scheme == "udp" do
+        tracker
+      end
+      {:reply, {trackers, <<201, 223, 231, 8, 104, 161, 66, 9, 79, 92, 249, 112, 202,
+      17, 45, 224, 183, 59, 200, 80>>}, state}
     else
       {:reply, [state["announce"]], state}
     end
+  end
+
+  def handle_cast({:peers, peers}, state) do
+    IO.inspect(peers)
+    {:noreply, state}
   end
 end

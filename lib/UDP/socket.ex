@@ -43,7 +43,7 @@ defmodule Bittorrent.UDP.Socket do
 
     case response_packet do
       {:ready, ips} -> 
-        GenServer.call(Bittorrent.Torrent, {:peers, ips})
+        GenServer.cast(Bittorrent.Torrent, {:peers, ips})
         {:stop, :peers, ips}
       _ -> 
         :gen_udp.send(socket, response_packet)
