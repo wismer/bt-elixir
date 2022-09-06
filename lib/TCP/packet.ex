@@ -2,13 +2,13 @@ defmodule Bittorrent.TCP.Packet do
   @pstr "BitTorrent Protocol"
   @reserved <<0, 0, 0, 0, 0, 0, 0, 0>>
 
-  def handshake(hash, peer_id) do
-    byte_size(@pstr)
-      |> Integer.to_string(16) <> @pstr <> @reserved <> hash <> peer_id
-  end
+  # def handshake(hash, peer_id) do
+  #   byte_size(@pstr)
+  #     |> Integer.to_string(16) <> @pstr <> @reserved <> hash <> peer_id
+  # end
 
 
-  def unpack(len::binary-size(4), id::binary-size(1), rest::binary>>) do
+  def unpack(<<len::binary-size(4), id::binary-size(1), rest::binary>>) do
     case :binary.decode_unsigned(id) do
       0 when byte_size(rest) == 0 -> {:keep_alive, nil}
       0 -> {:choke, nil}
@@ -24,12 +24,9 @@ defmodule Bittorrent.TCP.Packet do
   # def unpack(<<0, 0, 0, 1, 0>>), do: {:choke}
   # def unpack(<<0, 0, 0, 1, 1>>), do: {:unchoke}
   # def unpack(<<)
-
 end
 
 
-<<>> 
-  |> Packet.handshake(:handshake, hash)
 # Handshake
 # The handshake is a required message and must be the first message transmitted by the client. It is (49+len(pstr)) bytes long.
 
