@@ -12,7 +12,7 @@ defmodule Bittorrent.Bencode do
     {:ok, parse_torrent()}
   end
 
-  def parse_torrent(torrent_file \\ "./the-good-place.torrent") do
+  def parse_torrent(torrent_file \\ "./ubuntu.torrent") do
     File.read!(torrent_file)
     |> IO.iodata_to_binary()
     |> decode()
