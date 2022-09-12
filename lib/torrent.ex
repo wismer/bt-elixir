@@ -14,13 +14,15 @@ defmodule Bittorrent.Torrent do
 
   def handle_call(:trackers, _, state) do
     # TO DO: The encoding isn't quite right - the sha1 hash isn't matching! TIME WASTED!
-    tracker_list = Bencode.encode(%{"pieces" => state["info"]})
+    # I don't think the encoding was working because it wasn't encoding the `value` of the dictionary,
+    # - before it was encoding `%{"pieces" => state["info"]}` which is not correct. Have not 
+    # been able to verify this yet, however.
+    tracker_list = Bencode.encode(state["info"]) 
+    info_hash = :crypto.hash(:sha, tracker_list)
+
     if state["announce-list"] do
-      trackers = for tracker <- state["announce-list"], tracker.scheme == "udp" do
-        tracker
-      end
-      {:reply, {trackers, <<201, 223, 231, 8, 104, 161, 66, 9, 79, 92, 249, 112, 202,
-      17, 45, 224, 183, 59, 200, 80>>}, state}
+      trackers = state["announce-list"]
+      {:reply, {trackers, info_hash}, state}
     else
       {:reply, [state["announce"]], state}
     end
