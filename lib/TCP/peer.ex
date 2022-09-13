@@ -1,3 +1,3 @@
-defmodule Bittorrent.TCP.Peer do 
+defmodule Bittorrent.TCP.Peer do
   use GenServer
 end

@@ -17,7 +17,7 @@ defmodule Bittorrent.Torrent do
     # I don't think the encoding was working because it wasn't encoding the `value` of the dictionary,
     # - before it was encoding `%{"pieces" => state["info"]}` which is not correct. Have not 
     # been able to verify this yet, however.
-    tracker_list = Bencode.encode(state["info"]) 
+    tracker_list = Bencode.encode(state["info"])
     info_hash = :crypto.hash(:sha, tracker_list)
 
     if state["announce-list"] do

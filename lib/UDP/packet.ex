@@ -1,27 +1,30 @@
 defmodule Bittorrent.UDP.Packet do
   @connection_id <<0x41727101980::64>>
 
-  def parse(<<0::32, packet::binary>> = buffer), do:
-    unpack([{:transaction_id, 4}, {:connection_id, 8}], packet, %{
-      step: :connect,
-      size: byte_size(buffer)
-    })
-
-  def parse(<<1::32, packet::binary>> = buffer), do: unpack(
-      [
-        {:transaction_id, 4},
-        {:interval, 4},
-        {:leechers, 4},
-        {:seeders, 4},
-        {:ips, 4},
-        {:ports, 2}
-      ],
-      packet,
-      %{
-        step: :announce,
+  def parse(<<0::32, packet::binary>> = buffer),
+    do:
+      unpack([{:transaction_id, 4}, {:connection_id, 8}], packet, %{
+        step: :connect,
         size: byte_size(buffer)
-      }
-    )
+      })
+
+  def parse(<<1::32, packet::binary>> = buffer),
+    do:
+      unpack(
+        [
+          {:transaction_id, 4},
+          {:interval, 4},
+          {:leechers, 4},
+          {:seeders, 4},
+          {:ips, 4},
+          {:ports, 2}
+        ],
+        packet,
+        %{
+          step: :announce,
+          size: byte_size(buffer)
+        }
+      )
 
   def parse(<<2::32, packet::binary>>), do: {:error, :not_implemented}
   def parse(<<3::32, packet::binary>>), do: parse_error(packet)
@@ -31,7 +34,6 @@ defmodule Bittorrent.UDP.Packet do
     IO.inspect("#{rest}")
     {:error, :invalid}
   end
-
 
   # UNPACKING
 
@@ -54,6 +56,7 @@ defmodule Bittorrent.UDP.Packet do
     IO.inspect("WHAT")
     ips
   end
+
   def unpack_ips(<<>>, ips), do: ips
 
   defp binary_to_tuple(bytes), do: :binary.bin_to_list(bytes) |> List.to_tuple()
@@ -61,17 +64,21 @@ defmodule Bittorrent.UDP.Packet do
   # PACKING
 
   def build(:connect, transaction_id: t_id), do: pack_connect(t_id)
-  def build(%{step: :announce, connection_id: conn_id} = rest, fields), 
+
+  def build(%{step: :announce, connection_id: conn_id} = rest, fields),
     do: pack_announce(fields, conn_id)
-  
+
   def build(%{step: :uh_oh, ips: ips}, _fields), do: {:ready, ips}
 
   defp pack_connect(t_id), do: pack([{@connection_id, 64}, {0, 32}, {t_id, 32}], <<>>)
+
   defp pack_announce(fields, conn_id) do
     pack(
       [
-        {conn_id, 64}, # conn_id
-        {1, 32}, # action
+        # conn_id
+        {conn_id, 64},
+        # action
+        {1, 32},
         {Keyword.get(fields, :transaction_id), 32},
         {Keyword.get(fields, :info_hash), 160},
         {Keyword.get(fields, :peer_id), 160},
@@ -102,15 +109,18 @@ defmodule Bittorrent.UDP.Packet do
   def validate(%{transaction_id: current_t_id, size: size} = parts,
         transaction_id: t_id
       ) do
-      if current_t_id == t_id do
-        key = case parts[:step] do
+    if current_t_id == t_id do
+      key =
+        case parts[:step] do
           :connect -> :announce
-          :announce -> :uh_oh # make up something professional, for crying out loud.
+          # make up something professional, for crying out loud.
+          :announce -> :uh_oh
         end
-        %{parts | step: key}        
-      else
-        {:error, :invalid}
-      end
+
+      %{parts | step: key}
+    else
+      {:error, :invalid}
+    end
   end
 
   def validate(parts, fields), do: {:error, :invalid}

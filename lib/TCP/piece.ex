@@ -10,7 +10,5 @@ defmodule Bittorrent.TCP.Piece do
   end
 
   def handle_cast({:block, data, index}, piece) do
-    
   end
 end
-

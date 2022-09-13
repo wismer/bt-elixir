@@ -7,25 +7,36 @@ defmodule Bittorrent.TCP.Packet do
   #     |> Integer.to_string(16) <> @pstr <> @reserved <> hash <> peer_id
   # end
 
+  # def unpack(<<len::binary-size(4), id::binary-size(1), rest::binary>>) do
+  #   case :binary.decode_unsigned(id) do
+  #     0 when byte_size(rest) == 0 -> {:keep_alive, nil}
+  #     0 -> {:choke, nil}
+  #     1 -> {:unchoke, nil}
+  #     2 -> {:interested, nil}
+  #     3 -> {:not_interested, nil}
+  #     _ -> nil
+  #   end
+  # end
 
-  def unpack(<<len::binary-size(4), id::binary-size(1), rest::binary>>) do
-    case :binary.decode_unsigned(id) do
-      0 when byte_size(rest) == 0 -> {:keep_alive, nil}
-      0 -> {:choke, nil}
-      1 -> {:unchoke, nil}
-      2 -> {:interested, nil}
-      3 -> {:not_interested, nil}
-      _ -> nil
-    end
+  def unpack(<<_len::integer-size(32)>>), do: {:keep_alive}
+  def unpack(<<_len::integer-size(32), 0>>), do: {:choke}
+  def unpack(<<_len::integer-size(32), 1>>), do: {:unchoke}
+  def unpack(<<_len::integer-size(32), 2>>), do: {:interested}
+  def unpack(<<_len::integer-size(32), 3>>), do: {:not_interested}
+
+  def unpack(<<len::integer-size(32), 4, piece_index::binary>>),
+    do: {:have, piece_index}
+
+  def unpack(<<len::integer-size(32), 5, bitfield::binary>>) do 
+    IO.inspect(len)
+    unpack_bitfield(len - 8, :binary.decode_unsigned(bitfield), [])
   end
 
+  defp unpack_bitfield(0, bitfield, pieces), do: pieces
+  defp unpack_bitfield(len, bitfield, pieces),
+    do: unpack_bitfield(len - 1, bitfield, [Bitwise.bsr(bitfield, len - 1) |> Bitwise.band(1) | pieces])
 
-  # def unpack(<<0, 0, 0, 0>>), do: {:keep_alive}
-  # def unpack(<<0, 0, 0, 1, 0>>), do: {:choke}
-  # def unpack(<<0, 0, 0, 1, 1>>), do: {:unchoke}
-  # def unpack(<<)
 end
-
 
 # Handshake
 # The handshake is a required message and must be the first message transmitted by the client. It is (49+len(pstr)) bytes long.

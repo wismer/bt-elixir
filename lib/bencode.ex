@@ -14,9 +14,9 @@ defmodule Bittorrent.Bencode do
 
   def parse_torrent(torrent_file \\ "./ubuntu.torrent") do
     File.read!(torrent_file)
-      |> IO.iodata_to_binary()
-      |> decode()
-      |> into_uri()
+    |> IO.iodata_to_binary()
+    |> decode()
+    |> into_uri()
   end
 
   def decode(<<"i", rest::binary>>), do: decode_i(rest)
@@ -89,6 +89,7 @@ defmodule Bittorrent.Bencode do
 
   def into_uri({data, r}) do
     IO.inspect(data)
+
     if data["announce-list"] do
       update_in(data["announce-list"], fn urls ->
         cmon =

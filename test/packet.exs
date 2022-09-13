@@ -11,7 +11,6 @@ defmodule PacketTest do
     ip_2 = <<192, 168, 1, 1>>
     port_2 = <<0, 80>>
 
-
     expected_ips = [
       {{192, 168, 1, 1}, 80},
       {{192, 168, 1, 0}, 80}
@@ -88,7 +87,6 @@ defmodule PacketTest do
     transaction_id = :rand.bytes(4)
     info_hash = :rand.bytes(20)
     peer_id = :rand.bytes(20)
-    
 
     expected_packet = <<
       @connection_id::binary,
