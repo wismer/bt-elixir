@@ -6,10 +6,16 @@ defmodule PacketTest do
 
   test "unpacks an announce packet correctly" do
     t_id = :rand.bytes(4)
-    ip_1 = :rand.bytes(4)
-    port_1 = :rand.bytes(2)
-    ip_2 = :rand.bytes(4)
-    port_2 = :rand.bytes(2)
+    ip_1 = <<192, 168, 1, 0>>
+    port_1 = <<0, 80>>
+    ip_2 = <<192, 168, 1, 1>>
+    port_2 = <<0, 80>>
+
+
+    expected_ips = [
+      {{192, 168, 1, 1}, 80},
+      {{192, 168, 1, 0}, 80}
+    ]
 
     sample_binary = <<
       1::32,
@@ -30,7 +36,7 @@ defmodule PacketTest do
       interval: <<1914::32>>,
       leechers: <<1::32>>,
       seeders: <<1::32>>,
-      ips: [{ip_2, port_2}, {ip_1, port_1}],
+      ips: expected_ips,
       size: 32,
       step: :announce
     }
@@ -102,7 +108,7 @@ defmodule PacketTest do
 
     actual_packet =
       Packet.build(
-        %{step: :announce},
+        %{step: :announce, connection_id: <<@connection_id::binary>>},
         transaction_id: transaction_id,
         info_hash: info_hash,
         peer_id: peer_id,

@@ -102,11 +102,15 @@ defmodule Bittorrent.UDP.Packet do
   def validate(%{transaction_id: current_t_id, size: size} = parts,
         transaction_id: t_id
       ) do
-      key = case parts[:step] do
-        :connect -> :announce
-        :announce -> :uh_oh # make up something professional, for crying out loud.
+      if current_t_id == t_id do
+        key = case parts[:step] do
+          :connect -> :announce
+          :announce -> :uh_oh # make up something professional, for crying out loud.
+        end
+        %{parts | step: key}        
+      else
+        {:error, :invalid}
       end
-      %{parts | step: key}
   end
 
   def validate(parts, fields), do: {:error, :invalid}
