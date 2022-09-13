@@ -63,6 +63,7 @@ defmodule Bittorrent.UDP.Supervisor do
   def connect(children, sockets \\ []), do: connect_trackers(children, sockets)
 
   defp connect_trackers([child | children], sockets) do
+    IO.inspect(child)
     case DynamicSupervisor.start_child(__MODULE__, child) do
       {:ok, pid} -> 
         GenServer.cast(pid, :connect)

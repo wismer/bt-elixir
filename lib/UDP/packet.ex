@@ -47,10 +47,14 @@ defmodule Bittorrent.UDP.Packet do
     unpack(fields, rest, Map.put(parts, k, packet_part))
   end
 
-  defp unpack_ips(<<ip::binary-size(4), port::binary-size(2), rest::binary>>, ips),
+  def unpack_ips(<<ip::binary-size(4), port::binary-size(2), rest::binary>>, ips),
     do: unpack_ips(rest, [{binary_to_tuple(ip), :binary.decode_unsigned(port)} | ips])
 
-  defp unpack_ips(<<>>, ips), do: ips
+  def unpack_ips(remaining, ips) do
+    IO.inspect("WHAT")
+    ips
+  end
+  def unpack_ips(<<>>, ips), do: ips
 
   defp binary_to_tuple(bytes), do: :binary.bin_to_list(bytes) |> List.to_tuple()
 

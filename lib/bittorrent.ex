@@ -24,7 +24,7 @@ defmodule Bittorrent do
 
     children = [
       # Maybe `Torrent` doesn't need to be a process?
-      {Finch, name: FinchMeIMustBeDreaming},
+      {Finch, name: Bittorrent.HTTP.Socket},
       # Also change this...
       Bittorrent.Torrent,
       Bittorrent.TCP.Supervisor,
