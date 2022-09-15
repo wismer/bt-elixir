@@ -23,13 +23,21 @@ defmodule Bittorrent.Tracker do
         compact: 1,
         event: "started"
       })
-    IO.inspect("AM I GETTING HERE")
-    Finch.build(:get, "https://#{host}#{path}?#{url_params}")
+
+    {:ok, res} = Finch.build(:get, "https://#{host}#{path}?#{url_params}")
       |> Finch.request(Bittorrent.HTTP.Socket)
+
+    res = GenServer.call(Bittorrent.Downloader, :hello)
+    IO.inspect(res)
+    {:stop, :req_made}
+  end
+
+  def handle_info(:req, state) do
+    IO.inspect("slkdfjsldkfj")
+    {:noreply, state}
   end
 
   def handle_cast(req, state) do
-    IO.inspect("ALSKJDAKLDSFJAKDF")
     {:noreply, state}
   end
 
