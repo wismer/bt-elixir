@@ -8,15 +8,20 @@ defmodule Bittorrent.Bencode do
 
   @impl true
   def init(_init_state) do
-    IO.inspect("bencode init")
+    IO.puts("bencode init")
     {:ok, parse_torrent()}
   end
 
   def parse_torrent(torrent_file \\ "./ubuntu.torrent") do
-    File.read!(torrent_file)
-    |> IO.iodata_to_binary()
-    |> decode()
-    |> into_uri()
+    data =
+      File.read!(torrent_file)
+      |> IO.iodata_to_binary()
+      |> decode()
+      |> into_uri()
+
+    info_hash = encode(data["info"])
+
+    {:crypto.hash(:sha, info_hash), data}
   end
 
   def decode(<<"i", rest::binary>>), do: decode_i(rest)

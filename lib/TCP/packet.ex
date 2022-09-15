@@ -27,15 +27,18 @@ defmodule Bittorrent.TCP.Packet do
   def unpack(<<len::integer-size(32), 4, piece_index::binary>>),
     do: {:have, piece_index}
 
-  def unpack(<<len::integer-size(32), 5, bitfield::binary>>) do 
+  def unpack(<<len::integer-size(32), 5, bitfield::binary>>) do
     IO.inspect(len)
     unpack_bitfield(len - 8, :binary.decode_unsigned(bitfield), [])
   end
 
   defp unpack_bitfield(0, bitfield, pieces), do: pieces
-  defp unpack_bitfield(len, bitfield, pieces),
-    do: unpack_bitfield(len - 1, bitfield, [Bitwise.bsr(bitfield, len - 1) |> Bitwise.band(1) | pieces])
 
+  defp unpack_bitfield(len, bitfield, pieces),
+    do:
+      unpack_bitfield(len - 1, bitfield, [
+        Bitwise.bsr(bitfield, len - 1) |> Bitwise.band(1) | pieces
+      ])
 end
 
 # Handshake
